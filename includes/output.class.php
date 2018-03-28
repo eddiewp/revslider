@@ -4680,16 +4680,9 @@ if (setREVStartSize!==undefined) setREVStartSize(
 var revapi<?php echo $sliderID; ?>,
 	tpj;	
 (function() {			
-	if (!/loaded|interactive|complete/.test(document.readyState)) document.addEventListener("DOMContentLoaded",onLoad)
-		else
-	onLoad();
-	
+	if (!/loaded|interactive|complete/.test(document.readyState)) document.addEventListener("DOMContentLoaded",onLoad); else onLoad();	
 	function onLoad() {				
-		if (tpj===undefined) {
-			tpj = jQuery;
-
-			if("<?php echo $noConflict; ?>" == "on") tpj.noConflict();		
-		}
+		if (tpj===undefined) { tpj = jQuery; if("<?php echo $noConflict; ?>" == "on") tpj.noConflict();}
 <?php		
 	echo '	if(tpj("#'.$this->sliderHtmlID.'").revolution == undefined){'."\n";
 	echo '		revslider_showDoubleJqueryError("#'.$this->sliderHtmlID.'");'."\n";

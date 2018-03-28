@@ -534,32 +534,32 @@ class RevSliderInstagram {
 	 * @param    string    $user_id 	Instagram User id (not name)
 	 */
 	public function get_public_photos($search_user_id,$count){
-		if(!empty($search_user_id)){
+    if(!empty($search_user_id)){
         $url = 'https://www.instagram.com/'.$search_user_id.'/?__a=1';
-    		$transient_name = 'revslider_' . md5($url);
-    		if ($this->transient_sec > 0 && false !== ($data = get_transient( $transient_name)))
-    			return ($data);
+        $transient_name = 'revslider_' . md5($url);
+        if ($this->transient_sec > 0 && false !== ($data = get_transient( $transient_name)))
+          return ($data);
 
-    		$rsp = json_decode(wp_remote_fopen($url));
-        
+        $rsp = wp_remote_fopen($url);
+        $rsp = str_replace('"gating_info":null', '"user_info":"'.$search_user_id.'"', $rsp);
+        $rsp = json_decode($rsp);
+
         for($i=0;$i<$count;$i++) {
-              if(isset($rsp->user->media->nodes[$i])){
-                $rsp->user->media->nodes[$i]->owner->id = $search_user_id;
-    	      	  $return[] = $rsp->user->media->nodes[$i];
+              if(isset($rsp->graphql->user->edge_owner_to_timeline_media->edges[$i])){
+                $return[] = $rsp->graphql->user->edge_owner_to_timeline_media->edges[$i];
               }
-    		}
+        }
 
         $count = $count - 12;
 
         if($count){
           $pages = ceil($count/12);
-          while($pages-- && !empty($rsp->user->media->page_info->end_cursor)){
-              $url = 'https://www.instagram.com/'.$search_user_id.'/?__a=1&max_id='.$rsp->user->media->page_info->end_cursor;
+          while($pages-- && !empty($rsp->graphql->user->edge_owner_to_timeline_media->page_info->end_cursor)){
+              $url = 'https://www.instagram.com/'.$search_user_id.'/?__a=1&max_id='.$rsp->graphql->user->edge_owner_to_timeline_media->page_info->end_cursor;
               $rsp = json_decode(wp_remote_fopen($url));
               for($i=0;$i<$count;$i++){
-                    if(isset($rsp->user->media->nodes[$i])){
-                      $rsp->user->media->nodes[$i]->owner->id = $search_user_id;
-                      $return[] = $rsp->user->media->nodes[$i];
+                    if(isset($rsp->graphql->user->edge_owner_to_timeline_media->edges[$i])){
+                       $return[] = $rsp->graphql->user->edge_owner_to_timeline_media->edges[$i];
                     }
               }
               $count =- 12;
@@ -567,14 +567,14 @@ class RevSliderInstagram {
         }
 
         if(isset($return)){
-    			$rsp->user->media = $return;
-    			set_transient( $transient_name, $return, $this->transient_sec );
-    			return $return;
-    		}
-    		else return '';
+          $rsp->graphql->user->edge_owner_to_timeline_media->edges = $return;
+          set_transient( $transient_name, $return, $this->transient_sec );
+          return $return;
+        }
+        else return '';
     }
     else return '';
-	}
+  }
 
   /**
   * Get user ID if necessary

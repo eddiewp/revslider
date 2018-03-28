@@ -410,19 +410,19 @@ class RevSliderSlide extends RevSliderElementsBase{
 	 */
 	private function initByInstagram($sliderID){
 		$this->postData = apply_filters('revslider_slide_initByInstagram_pre', $this->postData, $sliderID, $this);
-		
-		//var_dump($this->params);
 
-		//set some slide params
-		$this->id = RevSliderFunctions::getVal($this->postData, 'id');
-		
-		$caption = RevSliderFunctions::getVal($this->postData, 'caption');
-		
-		$this->params["title"] = RevSliderFunctions::getVal($caption, 'caption');
-		
-		$link = RevSliderFunctions::getVal($this->postData, 'link');
+	    //var_dump($this->params);
 
-		if(empty($link)) $link = 'https://www.instagram.com/p/' . RevSliderFunctions::getVal($this->postData, 'code');
+	    //set some slide params
+		$this->id = $this->postData['node']->id;
+		
+		$caption = $this->postData['node']->edge_media_to_caption->edges[0]->node->text;
+
+		$this->params["title"] = $caption ;
+
+		$link = 'https://www.instagram.com/p/' . $this->postData['node']->shortcode;
+
+		$this->params["link"] = $link;
 
 		if(isset($this->params['enable_link']) && $this->params['enable_link'] == "true" && isset($this->params['link_type']) && $this->params['link_type'] == "regular"){
 			$this->params["link"] = str_replace(array("%link%", '{{link}}'), $link, $this->params["link"]);
@@ -431,13 +431,13 @@ class RevSliderSlide extends RevSliderElementsBase{
 		$this->params["state"] = "published";
 		
 		if($this->params["background_type"] == 'trans' || $this->params["background_type"] == 'image' || $this->params["background_type"] == 'streaminstagram' || $this->params["background_type"] == 'streaminstagramboth'){ //if image is choosen, use featured image as background
-			$img_sizes = RevSliderBase::get_all_image_sizes('instagram');
+			//$img_sizes = RevSliderBase::get_all_image_sizes('instagram');
 
-			$imgResolution = RevSliderFunctions::getVal($this->params, 'image_source_type', reset($img_sizes));
-			if(!isset($img_sizes[$imgResolution])) $imgResolution = key($img_sizes);
+			//$imgResolution = RevSliderFunctions::getVal($this->params, 'image_source_type', reset($img_sizes));
+			//if(!isset($img_sizes[$imgResolution])) $imgResolution = key($img_sizes);
 			
-			$this->imageID = RevSliderFunctions::getVal($this->postData, 'id');
-			$imgs = RevSliderFunctions::getVal($this->postData, 'images', array());
+			/*$this->imageID = RevSliderFunctions::getVal($this->postData['node'], 'id');
+			$imgs = RevSliderFunctions::getVal($this->postData['node'], 'images', array());
 			$is = array();
 			foreach($imgs as $k => $im){
 				$is[$k] = $im->url;
@@ -448,9 +448,19 @@ class RevSliderSlide extends RevSliderElementsBase{
 				$this->imageThumb = $is['thumbnail'];
 			}
 			else {
-				$this->imageUrl = RevSliderFunctions::getVal($this->postData, 'display_src');
-				$this->imageThumb = RevSliderFunctions::getVal($this->postData, 'thumbnail_src');
+				$this->imageUrl = $this->postData['node']->display_src;
+				$this->imageThumb = $this->postData['node']->thumbnail_src;
+			}*/
+
+			if(empty($this->postData['node']->display_url)){
+				$this->imageUrl = RS_PLUGIN_URL.'public/assets/assets/sources/ig.png';
 			}
+			else {
+				$this->imageUrl = $this->postData['node']->display_url;
+				$this->imageThumb = $this->postData['node']->thumbnail_src;
+			}
+
+			
 
 			//if(empty($this->imageUrl))
 			//	return(false);
@@ -466,14 +476,14 @@ class RevSliderSlide extends RevSliderElementsBase{
 			$this->imageFilename = basename($this->imageUrl);
 		}
 		
-		$videos = RevSliderFunctions::getVal($this->postData, 'videos');
+		$videos = RevSliderFunctions::getVal($this->postData['node'], 'videos');
 		
 		if(!empty($videos) && isset($videos->standard_resolution) && isset($videos->standard_resolution->url)){
 			$this->params["slide_bg_instagram"] = $videos->standard_resolution->url; //set video for background video
 			$this->params["slide_bg_html_mpeg"] = $videos->standard_resolution->url; //set video for background video
 		}
 		
-		$this->postData = apply_filters('revslider_slide_initByInstagram_post', $this->postData, $sliderID, $this);
+		$this->postData = apply_filters('revslider_slide_initByInstagram_post', $this->postData['node'], $sliderID, $this);
 		
 		//replace placeholders in layers:
 		$this->setLayersByStreamData($sliderID, 'instagram');	
@@ -978,23 +988,24 @@ class RevSliderSlide extends RevSliderElementsBase{
 				}
 			break;
 			case 'instagram':
-				$caption = RevSliderFunctions::getVal($this->postData, 'caption');
-				$user = RevSliderFunctions::getVal($this->postData, 'owner');
+				$caption = $this->postData->edge_media_to_caption->edges[0]->node->text;
+				
+				$user = isset($this->postData->user_info) ? $this->postData->user_info : '';
 
 				$attr['title'] = $caption;
 				$attr['content'] = $caption;
-				$attr['link'] = 'https://www.instagram.com/p/' . RevSliderFunctions::getVal($this->postData, 'code');
-				$attr['date'] = RevSliderFunctions::getVal($this->postData, 'date');
+				$attr['link'] = 'https://www.instagram.com/p/' . $this->postData->shortcode;
+				$attr['date'] = $this->postData->taken_at_timestamp;
 				$attr['date'] = date_i18n(get_option('date_format').' '.get_option('time_format'), $attr['date']);
 
-				$attr['author_name'] = $user->id;
+				$attr['author_name'] = $user;
 				$attr['author_name'] = empty($attr['author_name']) ? "" : $attr['author_name'];
 				
-				$likes_raw = RevSliderFunctions::getVal($this->postData, 'likes');
-				$attr['likes'] = RevSliderFunctions::getVal($likes_raw, 'count');
+				$attr['likes'] = $this->postData->edge_liked_by->count;
+				//$attr['likes'] = RevSliderFunctions::getVal($likes_raw, 'count');
 				
-				$comments_raw = RevSliderFunctions::getVal($this->postData, 'comments');
-				$attr['num_comments'] = RevSliderFunctions::getVal($comments_raw, 'count');
+				$attr['num_comments'] = $this->postData->edge_media_to_comment->count;
+				//$attr['num_comments'] = RevSliderFunctions::getVal($comments_raw, 'count');
 				
 				$inst_img = RevSliderFunctions::getVal($this->postData, 'images', array());
 				foreach($inst_img as $key => $img){
